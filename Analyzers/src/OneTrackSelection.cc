@@ -6,451 +6,390 @@
 #include "functions.hh"
 #include "Event.hh"
 #include "Persistency.hh"
+#include "TRecoVEvent.hh"
+#include "Definition.h"
+
 using namespace std;
 using namespace NA62Analysis;
 using namespace NA62Constants;
 
-/// \class OneTrackSelection
-/// \Brief
-/// Short description of your Analyzer
-/// \EndBrief
-///
-/// \Detailed
-/// Detailed description of your Analyzer\n\n
-/// For examples of working Analyzer you can have a look at the examples in the Examples/ directory:\n
-/// LKrPhotonMC \n
-/// Pi0Reconstruction \n
-/// SkimmingNoStrawMuonsTracks \n
-/// Or the framework analyzers that can be found in the Analyzers/ directories: \n
-/// CedarMCTester \n
-/// VertexCDA \n
-/// \n
-/// All the following classes are available for you to use. Check their documentation for more information:\n
-/// NA62Analysis::manip::TermManip \n
-/// NA62Analysis::Analyzer \n
-/// NA62Analysis::CounterHandler \n
-/// NA62Analysis::DetectorAcceptance \n
-/// NA62Analysis::EventFraction \n
-/// NA62Analysis::MCSimple \n
-/// NA62Analysis::NeuralNetwork \n
-/// NA62Analysis::ParticleInterface \n
-/// NA62Analysis::ParticleTree \n
-/// NA62Analysis::StringBalancedTable \n
-/// NA62Analysis::StringTable \n
-/// NA62Analysis::UserMethods \n
-/// NA62Analysis::Verbose \n
-///
-/// You might also be interested in checking the documentation for the following classes. However you should not
-/// in general have to create instances of these. If necessary a pointer to the existing instance is usually
-/// available or provided by specific methods.\n
-/// NA62Analysis::Core::IOHisto \n
-/// NA62Analysis::Core::IOTree \n
-/// NA62Analysis::Core::IOHandler \n
-/// NA62Analysis::Core::HistoHandler \n
-/// NA62Analysis::Core::HistoHandler::Iterator \n
-///
-/// \EndDetailed
 
 OneTrackSelection::OneTrackSelection(Core::BaseAnalysis *ba) : Analyzer(ba, "OneTrackSelection")
 {
-	/// \MemberDescr
-	/// \param ba : parent BaseAnalysis
-	///
-	/// Specify the trees you want to use and the event class corresponding\n
-	/// Don't try to load MCTruth tree (RUN_0 or Event). Use the MCTruthEvent in Process function instead. Problems when opening twice the same tree.\n
-	/// Example with RecoEvent\n
-	///	\code
-	///		RequestTree("GigaTracker", new TRecoGigaTrackerEvent);
-	///		RequestTree("GigaTracker", new TRecoGigaTrackerEvent, "Reco");
-	///		RequestTree("GigaTracker", new TRecoGigaTrackerEvent, "Digis");
-	/// \endcode
-	/// Example with MC Event\n
-	///	\code
-	///		RequestTree("GigaTracker", new TGigaTrackerEvent);
-	/// \endcode
-	/// Example with generic tree\n
-	///	\code
-	///		RequestTree<MyClass>("MyTree", "BranchName", "MyClass", new MyClass);
-	///		RequestTree("MyTree", "BranchName", "MyClass", new MyClass);
-	/// \endcode
-	/// Requesting Trigger data\n
-	///	\code
-	///		RequestL0Data();
-	///		RequestL1Data();
-	///		RequestL2Data();
-	/// \endcode
-	//// \n
-	/// Initialize DetectorAcceptance if needed\n
-	/// use of global instance\n
-	///	\code
-	///		fDetectorAcceptanceInstance = GetDetectorAcceptanceInstance();
-	/// \endcode
-	/// use of local instance\n
-	///	\code
-	///		fDetectorAcceptanceInstance = new DetectorAcceptance("./NA62.root");
-	/// \endcode
-	/// \n
-	/// Call one of: \n
-	///	\code
-	/// 	AddParam("paramName", &variableName, defaultValue);
-	/// \endcode
-	/// for each parameter of the analyzer. These parameters can be set when starting the FW from the command line with the -p option.\n
-	/// paramName is the name of the parameter in the command line\n
-	/// variableName is the name of the variable that should be declared in the definition of the class\n
-	/// defaultValue is the default value if not specified in the command line\n
-	/// The allowed types for parameters are the following: bool, int, long, float, double, char, string, TString\n
-	/// \EndMemberDescr
 
-	RequestTree("LKr",new TRecoLKrEvent);
-	RequestTree("Spectrometer",new TRecoSpectrometerEvent);
-	RequestTree("MUV1",new TRecoMUV1Event);
-	RequestTree("MUV2",new TRecoMUV2Event);
-	RequestTree("MUV3",new TRecoMUV3Event);
-	RequestTree("RICH",new TRecoRICHEvent);
-	RequestTree("CEDAR",new TRecoCEDAREvent);
+    RequestTree("LKr",new TRecoLKrEvent);
+    RequestTree("Spectrometer",new TRecoSpectrometerEvent);
+    RequestTree("MUV1",new TRecoMUV1Event);
+    RequestTree("MUV2",new TRecoMUV2Event);
+    RequestTree("MUV3",new TRecoMUV3Event);
+    RequestTree("RICH",new TRecoRICHEvent);
+    RequestTree("CHOD",new TRecoCHODEvent);
+    RequestTree("Cedar",new TRecoCedarEvent);
 
 
 }
 
 void OneTrackSelection::InitOutput(){
-	/// \MemberDescr
-	/// Register the output variables of the analyzer.\n
-	/// Call: \n
-	///	\code
-	/// 	RegisterOutput("outputName", &variableName)
-	/// \endcode
-	/// for each variable that should be in the output of the Analyzer\n
-	/// The name of the analyzer will be prepended to the outputName (to avoid collisions with other analyzers)\n
-	/// variableName should be the name of a variable declared in the definition of the class\n
-	/// \n
-	/// To create a new TTree in the output file, call: \n
-	///	\code
-	/// 	void OpenNewTree("TTreeName", "TTreeTitle");
-	/// \endcode
-	/// TTreeName is the name of the TTree (will be used to refer to this TTree later)\n
-	/// TTreeTitle is the title of the TTree\n
-	/// \n
-	/// To add a branch to the newly created TTree, call: \n
-	///	\code
-	/// 	void AddBranch<VariableType>("TTreeName", "BranchName", &pointer);
-	/// \endcode
-	/// VariableType is the type of the variable for this branch (fundamental data type or class)\n
-	/// TTreeName is the name of the TTree to add this branch\n
-	/// BranchName is the name of the branch\n
-	/// pointer is a pointer to the variable (should be declared in the header file)\n
-	/// \n
-	/// To create a standard TTree containing KineParts (for candidates) use\n
-	///	\code
-	///     CreateStandardTree("TTreeName", "TTreeTitle");
-	/// \endcode
-	/// \EndMemberDescr
 }
 
 void OneTrackSelection::InitHist(){
-	/// \MemberDescr
-	/// Book and Initialize histograms in this function.\n
-	/// Same function to Book TH1, TH2, TGraph and TGraphAsymmErrors (anything derived from TH1 or TGraph)
-	///	\code
-	/// 	BookHisto(histogram*)
-	/// \endcode
-	/// If isAutotUpdate is true, this histogram will be drawn and updated regularly during the processing (default=false).\n
-	/// The refresh interval can be set with (default=10):
-	/// \code
-	/// 	SetUpdateInterval(interval)
-	/// \endcode
-	/// Defining plots as AutoUpdate and setting the interval can also be done at runtime with a configuration file.\n
-	/// \n
-	/// Example of booking an histogram: \n
-	///	\code
-	/// 	BookHisto(new TH2I("PartEnergy", "Energy as a function of particle", 0, 0, 0, Bins, MinEnergy, MaxEnergy));
-	/// \endcode
-	/// Booking of counters and creation of EventFraction can be done here with\n
-	///	\code
-	///		BookCounter(name)
-	///		NewEventFraction(name)
-	/// \endcode
-	/// Example\n
-	///	\code
-	/// 	BookCounter("Total");
-	/// 	BookCounter("PassCuts");
-	/// 	NewEventFraction("Cuts");
-	/// \endcode
-	/// Add the counters to the EventFraction\n
-	///	\code
-	/// 	AddCounterToEventFraction(EventFractionName, CounterName)
-	/// \endcode
-	/// Example\n
-	///	\code
-	/// 	AddCounterToEventFraction("Cuts", "Total");
-	/// 	AddCounterToEventFraction("Cuts", "PassCuts");
-	/// \endcode
-	/// Then define which counter represents the sample size\n
-	///	\code
-	/// 	DefineSampleSizeCounter(EventFractionName, CounterName)
-	/// \endcode
-	/// Example\n
-	///	\code
-	/// 	DefineSampleSizeCounter("Cuts", "Total");
-	/// \endcode
-	/// You can check the content of the input file (directory, histograms, generic key) in any directory with the following methods
-	/// \code
-	/// 	GetListOfKeys("CedarMonitoring"); // CedarMonitoring directory
-	/// 	GetListOfHisto(""); // Top directory
-	/// 	GetListOfTH1("CedarMonitoring");
-	/// 	GetListOfTH2("CedarMonitoring");
-	/// 	GetListOfTGraph("CedarMonitoring");
-	/// 	GetListOfDirs("");
-	/// \endcode
-	/// The first one returns a vector of IOHandler::keyPair containing the name and class name of the object
-	/// \code
-	/// 	vector<IOHandler::keyPair> keys = GetListOfKeys("CedarMonitoring");
-	/// 	cout << keys[0].name << " " << keys[0].className << endl;
-	/// \endcode
-	/// The others returns a vector of TString containing the name of the objects.\n
-	/// You can retrieve histograms from the input ROOT file (Anything derived from TH1) with\n
-	///	\code
-	/// 	RequestHistogram("TDirectoryName", "HistogramName", appendOnNewFile);
-	/// \endcode
-	/// appendOnNewFile is a boolean. If set to true, each time a new file is opened the content
-	/// of the histogram will be appended to the content of the previous one. If set to false, the content
-	/// of the histogram is replaced each time a new file is opened.
-	/// \EndMemberDescr
+    BookHisto(new TH1F("CEDAR_timediff"," CEDAR_{time} - CHOD_{time} ; CEDAR_{time}- CHOD_{time} [ns]", 400, -100, 100.));
 }
 
 void OneTrackSelection::DefineMCSimple(){
-	/// \MemberDescr
-	/// Setup of fMCSimple. You must specify the generated MC particles you want.\n
-	/// Add particles you want to recover from fMCSimple\n
-	///	\code
-	/// 	int particleID = fMCSimple.AddParticle(parentID, pdgCode)
-	///	\endcode
-	/// parentID : 	0=no parent (=beam particle)\n
-	/// 	...\n
-	/// Example : you want to retrieve the kaon from the beam, the pi0 an pi+ from the beam kaon and the 2 photons coming from the previous pi0 decay :\n
-	///	\code
-	/// 	int kaonID = fMCSimple.AddParticle(0, 321) //Ask beam kaon (sequence ID=1)
-	/// 	fMCSimple.AddParticle(kaonID, 211) //Ask pi+ from previous kaon (sequence ID=2)
-	/// 	int pi0ID = fMCSimple.AddParticle(kaonID, 111) //Ask pi0 from previous kaon (sequence ID=3)
-	/// 	fMCSimple.AddParticle(pi0ID, 22) //Ask first gamma from previous pi0 (sequence ID=4)
-	/// 	fMCSimple.AddParticle(pi0ID, 22) //Ask second gamma from previous pi0 (sequence ID=4)
-	///	\endcode
-	///
-	/// @see ROOT TDatabasePDG for a list of PDG codes and particle naming convention
-	/// \EndMemberDescr
 }
 
 void OneTrackSelection::StartOfRunUser(){
-	/// \MemberDescr
-	/// This method is called at the beginning of the processing (corresponding to a start of run in the normal NA62 data taking)\n
-	/// Do here your start of run processing if any
-	/// \EndMemberDescr
 }
 
 void OneTrackSelection::StartOfBurstUser(){
-	/// \MemberDescr
-	/// This method is called when a new file is opened in the ROOT TChain (corresponding to a start/end of burst in the normal NA62 data taking) + at the beginning of the first file\n
-	/// Do here your start/end of burst processing if any
-	/// \EndMemberDescr
 }
 
 void OneTrackSelection::Process(int iEvent){
-	/// \MemberDescr
-	/// \param iEvent : Event number
-	///
-	/// Main process method. Called on each event. Write you analysis here.\n
-	/// You can retrieve MC particles from the fMCSimple set with (returns a vector<KinePart*>)\n
-	/// \code
-	/// 	fMCSimple["particleName"]
-	/// 	fMCSimple[pdgID]
-	/// \endcode
-	/// Example\n
-	/// \code
-	/// 	fMCSimple["K+"][index]; //for the kaon
-	/// 	fMCSimple["pi+"][index]; //for the positive pion
-	/// 	fMCSimple["gamma"][index]; //for the photon
-	/// \endcode
-	/// The number in the brackets is the index of the particle (if you asked for two photons in the set, you can ask fMCSimple["gamma"][0] for the first one and fMCSimple["gamma"][1] for the second)\n
-	/// \n
-	/// If you need a property of a particle, you can make a call to fParticleInterface (instance of the ParticleInterface class).\n
-	///	This class has two methods FindParticle that will return a TParticlePDG with the required particle. You can search by pdgID or by name.\n
-	///	This class also provide two methods to switch between particle name and pdgID if necessary.\n
-	///	Example\n
-	/// \code
-	/// 	double kaonMass = fParticleInterface->FindParticle(321).Mass();
-	/// 	double pi0Lifetime = fParticleInterface->FindParticle("pi0").Lifetime();
-	/// \endcode
-	/// You can retrieve the events from the trees with\n
-	/// \code
-	/// 	(eventClass*)GetEvent("detectorName");
-	/// 	(eventClass*)GetEvent("detectorName", "Digis");
-	/// \endcode
-	/// You can retrieve data from generic TTrees with\n
-	/// \code
-	/// 	GetObject<MyClass>("treeName");
-	/// \endcode
-	/// You can retrieve full MC events if available ( GetWithMC() ) with\n
-	/// \code
-	/// 	GetMCEvent();
-	/// 	GetMCEvent("Digis");
-	/// \endcode
-	/// You can retrieve RawHeader if available ( GetWithRawHeader() ) with\n
-	/// \code
-	/// 	GetRawHeader();
-	/// 	GetRawHeader("Digis");
-	/// \endcode
-	/// You can retrieve Trigger data if requested with\n
-	/// \code
-	/// 	GetL0Data();
-	/// 	GetL1Data();
-	/// 	GetL2Data();
-	/// \endcode
-	/// You can retrieve the histograms you booked (for drawing, changing, filling, ...) with\n
-	/// \code
-	/// 	fHisto.GetTH1("histoName");// for TH1
-	/// 	fHisto.GetTH2("histoName");// for TH2
-	/// 	fHisto.GetTGraph("graphName");// for TGraph and TGraphAsymmErrors
-	/// 	fHisto.GetHisto("histoName");// for TH1 or TH2 (returns a TH1 pointer)
-	/// \endcode
-	/// To fill the histograms you can use\n
-	/// \code
-	/// 	FillHisto("histoName", values)
-	/// \endcode
-	/// where values are the same parameters as if you call histogram->Fill(values) (x,y,weight,...)\n
-	/// If the histogram is not found, an error message is printed\n
-	/// \n
-	/// Modify a counter with one of the following methods\n
-	/// \code
-	/// 	IncrementCounter(name)
-	/// 	IncrementCounter(name, delta)
-	/// 	DecrementCounter(name)
-	/// 	DecrementCounter(name, delta)
-	/// 	SetCounterValue(name, value)
-	/// \endcode
-	/// \n
-	/// For use of fGeom, read DetectorAcceptance class.\n
-	///	WARNING: this class provides "exact" results, there is not tolerance. If the particle\n
-	///	passes in the sensitive volume of a detector it's considered as detected, wether it's close\n
-	///	to the edge or not. But as the class gives you the position of the passage point and the \n
-	///	estimated path length in the sensitive volume, you can apply further cuts from this\n
-	///	information at your convenience.\n
-	/// \n
-	/// To use the output of a different analyzer, use\n
-	/// \code
-	/// 	outputType *var = GetOutput<outputType>("analyzerName.outputName", state);
-	/// \endcode
-	/// Where outputType is the variable type and state is of type outputState\n
-	/// State is set with the state of the variable (kOUninit, kOInvalid ,kOValid). The value of the output should only be trusted if state == kOValid\n
-	/// example :
-	/// \code
-	/// 	TLorentzVector vertex = *(TLorentzVector*)GetOutput("simpleVertexAnalyzer.vertex", state);
-	/// \endcode
-	/// Before starting the processing of an event, the state flag of each output variable is reset to kOUninit\n
-	/// When setting the value of an output variable, don't forget to set appropriately the state flag to either kOValid or kOInvalid\n
-	/// to indicate if the value can/can't be used in other analyzer\n
-	/// \code
-	/// 	SetOutputState("outputName", kOValid);
-	/// \endcode
-	/// If you want to append a candidate in one of your standard output Tree, use\n
-	/// \code
-	/// 	KinePart *candidate = CreateStandardCandidate("treeName");
-	/// \endcode
-	/// and fill the properties of your candidate. It will be automatically written in the output tree.\n
-	///	\n
-	/// If you want to save this event in your custom and standard TTrees (not the input tree replication), call\n
-	/// \code
-	/// 	FillTrees();
-	/// \endcode
-	/// This will call the Fill method of every TTree created in this analyzer.\n
-	///	\n
-	/// If you want to replicate this event in the output file, call\n
-	/// \code
-	/// 	ExportEvent();
-	/// \endcode
-	/// The structure of all the trees that have been opened (by all Analyzer) will be copied in the output file\n
-	/// and the events for which at least one analyzer called ExportEvent() will be replicated in the output trees.
-	/// @see ROOT TParticlePDG for the particle properties
-	/// @see ROOT TDatabasePDG for a list of PDG codes and particle naming convention
-	/// \EndMemberDescr
-	if(fMCSimple.fStatus == MCSimple::kMissing){printIncompleteMCWarning(iEvent);return;}
-	if(fMCSimple.fStatus == MCSimple::kEmpty){printNoMCWarning();return;}
+//    if(fMCSimple.fStatus == MCSimple::kMissing){printIncompleteMCWarning(iEvent);return;}
+//    if(fMCSimple.fStatus == MCSimple::kEmpty){printNoMCWarning();return;}
 
-	TRecoLKrEvent *LKrEvent = (TRecoLKrEvent*)GetEvent("LKr");
-	TRecoSpectrometerEvent *SpectrometerEvent = (TRecoSpectrometerEvent*)GetEvent("Spectrometer");
-	TRecoMUV1Event *MUV1Event = (TRecoMUV1Event*)GetEvent("MUV1");
-	TRecoMUV2Event *MUV2Event = (TRecoMUV2Event*)GetEvent("MUV2");
-	TRecoMUV3Event *MUV3Event = (TRecoMUV3Event*)GetEvent("MUV3");
-	TRecoRICHEvent *RICHEvent = (TRecoRICHEvent*)GetEvent("RICH");
-	TRecoCEDAREvent *CEDAREvent = (TRecoCEDAREvent*)GetEvent("CEDAR");
+    TRecoLKrEvent *LKrEvent = (TRecoLKrEvent*)GetEvent("LKr");
+    TRecoSpectrometerEvent *SpectrometerEvent = (TRecoSpectrometerEvent*)GetEvent("Spectrometer");
+    TRecoMUV1Event *MUV1Event = (TRecoMUV1Event*)GetEvent("MUV1");
+    TRecoMUV2Event *MUV2Event = (TRecoMUV2Event*)GetEvent("MUV2");
+    TRecoMUV3Event *MUV3Event = (TRecoMUV3Event*)GetEvent("MUV3");
+    TRecoRICHEvent *RICHEvent = (TRecoRICHEvent*)GetEvent("RICH");
+    TRecoCHODEvent *CHODEvent = (TRecoCHODEvent*)GetEvent("CHOD");
+    TRecoCedarEvent *CedarEvent = (TRecoCedarEvent*)GetEvent("Cedar");
+
+    //CUTComment:: Only one candidate in the STRAW
+    if(SpectrometerEvent->GetNCandidates() != 1 ){return;}
+
+    TRecoSpectrometerCandidate* Track = ((TRecoSpectrometerCandidate*)SpectrometerEvent->GetCandidate(0));
+
+    //CUTComment:: Check if track is positive (K+ beam in NA62)
+    if(Track->GetCharge() != 1){ return;}
+    //cout << "MUV L0 trig == " << CHODEvent->GetL0TriggerType() << "STRAW L0 trig == " << MUV3Event->GetTriggerType() << endl;
+
+    //Comment:: All necessary STRAW variables are defined here
+    double STRAW_P    = Track->GetMomentum();
+    double STRAW_Pbf  = Track->GetMomentumBeforeFit();
+    double STRAW_bdxdz= Track->GetSlopeXBeforeMagnet();
+    double STRAW_bdydz= Track->GetSlopeYBeforeMagnet();
+    double STRAW_dxdz = Track->GetSlopeXAfterMagnet();
+    double STRAW_dydz = Track->GetSlopeYAfterMagnet();
+    int    STRAW_NC   = Track->GetNChambers();
+    double STRAW_chi2 = Track->GetChi2();
+
+    //CUTComment:: Check if the the chi2 of the track fitter in the straw is >20
+    // and if there are at least 3 chambers fired
+    if(STRAW_chi2 > 20){ return;}
+    if(STRAW_NC   < 3){ return;}
+
+    //CUTComment:: At least one candidate in the Cedar
+    if(CedarEvent->GetNCandidates() == 0){return;}
+
+    for( int iCedarCand=0; iCedarCand < CedarEvent->GetNCandidates(); iCedarCand++){
+
+        TRecoCedarCandidate* CedarCandidate = ((TRecoCedarCandidate*)CedarEvent->GetCandidate(iCedarCand));
+
+        //CUTComment:: At least 5 sectors in the CEDAR
+        if(CedarCandidate->GetNSectors() < 5 ){return;}
+
+    }
+
+    //Getting the position vectors and the slopes of the tracks
+    //given by the spectrometer before the magnet @ DCH1 (dxdz and dydz)
+    TVector3 SlopesBefore;
+    TVector3 PositionBefore;
+
+    SlopesBefore.SetX(STRAW_bdxdz);
+    SlopesBefore.SetY(STRAW_bdydz);
+    SlopesBefore.SetZ(1.);
+    PositionBefore = Track->GetPositionBeforeMagnet();
+
+    //Getting the position vectors and the slopes of the tracks
+    //after the magnet @ DCH4
+    TVector3 SlopesAfter;
+    TVector3 PositionAfter;
+
+    SlopesAfter.SetX(STRAW_dxdz);
+    SlopesAfter.SetY(STRAW_dydz);
+    SlopesAfter.SetZ(1.);
+    PositionAfter = Track->GetPositionAfterMagnet();
+
+    //Extrapolating the track to the other detectors
+    TVector3 RICH_extrap = PositionAfter + ( ZRICHStart*1000 - PositionAfter.Z() )*SlopesAfter;
+    TVector3 CHOD_extrap = PositionAfter + ( ZCHODStart*1000 - PositionAfter.Z() )*SlopesAfter;
+    TVector3 MUV1_extrap = PositionAfter + ( ZMUV1Start*1000 - PositionAfter.Z() )*SlopesAfter;
+    TVector3 MUV2_extrap = PositionAfter + ( ZMUV2Start*1000 - PositionAfter.Z() )*SlopesAfter;
+    TVector3 MUV3_extrap = PositionAfter + ( ZMUV3Start*1000 - PositionAfter.Z() )*SlopesAfter;
+    TVector3 LKr_extrap  = PositionAfter + ( ZLKrStart *1000 - PositionAfter.Z() )*SlopesAfter;
+
+    double CHODR  = sqrt( pow(CHOD_extrap.X(),2) + pow(CHOD_extrap.Y(),2) );
+
+    //Passing the momentum of the particles together with the slopes after the magnet
+    //to the function FindClosestCluster which gives you the index of the cluster and
+    //the value of the closest distance between the extrapolated track and the cluster
+    double CHODdtrkcl_min;
+    double LKrdtrkcl_min;
+    double MUV1dtrkcl_min;
+    double MUV2dtrkcl_min;
+    double MUV3dtrkcl_min;
+
+    vector <double> CEDAR_STRAW_tdiff;
+
+    int CHODClosestTrackIndex = FindClosestCluster(CHODEvent, CHOD_extrap, "CHOD" , CHODdtrkcl_min);
+    int LKrTrackClusterIndex  = FindClosestCluster(LKrEvent , LKr_extrap , "LKr"  , LKrdtrkcl_min);
+    int MUV1TrackClusterIndex = FindClosestCluster(MUV1Event, MUV1_extrap, "MUV1" , MUV1dtrkcl_min);
+    int MUV2TrackClusterIndex = FindClosestCluster(MUV2Event, MUV2_extrap, "MUV2" , MUV2dtrkcl_min);
+    int MUV3TrackClusterIndex = FindClosestCluster(MUV3Event, MUV3_extrap, "MUV3" , MUV3dtrkcl_min);
+
+    //CUTComment::At least one track associated with hit in the CHOD
+    if(CHODClosestTrackIndex < 0. ){return;}
+
+    //Setting up the time of the track. STRAW time is not available, therefore
+    //CHOD time will be used as the track time
+    double STRAW4R  = sqrt( pow(PositionAfter.X(),2) + pow(PositionAfter.Y(),2) );
+    double CD_TrackTime    = ((TRecoCHODCandidate*)CHODEvent->GetCandidate(CHODClosestTrackIndex))->GetTime();
+
+    //CUTComment:: Distance to the extrapolated track in the CHOD bigger than 8 cm
+    //Track to be in the CHOD geometrical  acceptance
+    if(CHODdtrkcl_min > 80. ) {return;}
+    if(CHODR < 100. || CHODR > 1200) {return;} //[mm]
+
+    //Cedar event with the closest time to the track time selected
+
+    for(int iCedarCand=0; iCedarCand < CedarEvent->GetNCandidates(); iCedarCand++){
+
+        TRecoCedarCandidate* CedarCandidate = ((TRecoCedarCandidate*)CedarEvent->GetCandidate(iCedarCand));
+
+        double CedarCandidateTime = CedarCandidate->GetTime();
+        double CedarTimeDiff      = CD_TrackTime - CedarCandidateTime;
+
+        CEDAR_STRAW_tdiff.push_back(CedarTimeDiff);
+
+    }
+
+
+    if(CEDAR_STRAW_tdiff.size() !=0){
+        double CedarTime = *min_element(CEDAR_STRAW_tdiff.begin(), CEDAR_STRAW_tdiff.end());
+
+        //CUTComment:: Cedar time difference cut
+        if(fabs(CedarTime) > 3){return;}
+        FillHisto("CEDAR_timediff", CedarTime);
+    }
+
+    //Quality of the LKr cluster, associated with the track (if any)
+    if(LKrTrackClusterIndex > -1){
+        TRecoLKrCandidate* CD_LKrCluster = ((TRecoLKrCandidate*)LKrEvent->GetCandidate(LKrTrackClusterIndex));
+
+        double CD_LKrClusterTime  = ((TRecoLKrCandidate*)LKrEvent->GetCandidate(LKrTrackClusterIndex))->GetClusterTime();
+        double CD_LKrClusterDDead = ((TRecoLKrCandidate*)LKrEvent->GetCandidate(LKrTrackClusterIndex))->GetClusterDDeadCell();
+        double LKrTrkTime = CD_TrackTime - CD_LKrClusterTime + 120;
+        double LKrR  = sqrt( pow(LKr_extrap.X(),2) + pow(LKr_extrap.Y(),2) );
+        double Cluster_X = CD_LKrCluster->GetClusterX()*10;
+        double Cluster_Y = CD_LKrCluster->GetClusterY()*10;
+
+
+        //CUTComment:: LKr cuts
+        //1. Track to be inside of the LKr Geometrical acceptance
+        //-----a) Inner diameter 15 cm
+        //-----a) Outer diameter 110 cm
+        //3. Distance between track and closest cluster 5cm
+        //4. Distance to deadcell > 2cm
+        //5. Cluster to be in time with the Track ( Current cut 10 ns)
+
+        if(LKrR < 150. || LKrR > 1100. ) {return;}
+
+        if(LKrdtrkcl_min  > 50. ) {return;}
+
+        if(CD_LKrClusterDDead < 2.){return;}
+
+        if(fabs(LKrTrkTime) > 10){return;}
+
+    }
+
+    //Quality of the MUV1 cluster, associated with the track (if any)
+    if(MUV1TrackClusterIndex > -1){
+
+        TRecoMUV1Candidate* CD_MUV1Cluster = ((TRecoMUV1Candidate*)MUV1Event->GetCandidate(MUV1TrackClusterIndex));
+
+        double CD_MUV1ClusterTime = ((TRecoMUV1Candidate*)MUV1Event->GetCandidate(MUV1TrackClusterIndex))->GetTime();
+        double MUV1TrkTime = CD_TrackTime - CD_MUV1ClusterTime;
+
+        //CUTComment:: MUV1 cuts
+        //1. Track to be inside of the MUV1 Geometrical acceptance
+        //-----a) Inner Square 26 cm
+        //-----b) Outer Square 220 cm
+        //2. Track search square 12 cm ( 2 strips)
+        //3. Distance between track and associated cluster 12 cm ??
+        //4. Cluster to be in time with the Track ( Current cut 20 ns)
+
+        if(fabs(MUV1_extrap.X()) <= 130. && fabs(MUV1_extrap.Y()) <= 130.){return;}
+        if(fabs(MUV1_extrap.X()) >= 1100. || fabs(MUV1_extrap.Y()) >= 1100.){return;}
+
+        if( fabs(CD_MUV1Cluster->GetPosition().X() - MUV1_extrap.X()) > 120. ||
+            fabs(CD_MUV1Cluster->GetPosition().Y() - MUV1_extrap.Y()) > 120.){return;}
+
+        if(fabs(MUV1TrkTime) > 20){return;}
+        //if(MUV1dtrkcl_min > 120.) {return;}
+
+    }
+
+    //Quality of the MUV2 cluster, associated with the track (if any)
+    if(MUV2TrackClusterIndex > -1){
+
+        TRecoMUV2Candidate* CD_MUV2Cluster = ((TRecoMUV2Candidate*)MUV2Event->GetCandidate(MUV2TrackClusterIndex));
+
+        double CD_MUV2ClusterTime   = ((TRecoMUV2Candidate*)MUV2Event->GetCandidate(MUV2TrackClusterIndex))->GetTime();
+        double MUV2TrkTime = CD_TrackTime - CD_MUV2ClusterTime;
+
+        //CUTComment:: MUV2 cuts
+        //1. Track to be inside of the MUV2 Geometrical acceptance
+        //-----a) Inner Square 26 cm
+        //-----b) Outer Square 220 cm
+        //2. Track search square 24 cm ( 2 strips)
+        //3. Distance between track and associated cluster 24 cm ??
+        //4. Cluster to be in time with the Track ( Current cut 20 ns)
+
+        if(fabs(MUV2_extrap.X()) <= 130.  && fabs(MUV2_extrap.Y()) <= 130.){return;}
+        if(fabs(MUV2_extrap.X()) >= 1100. || fabs(MUV2_extrap.Y()) >= 1100.){return;}
+
+        if( fabs(CD_MUV2Cluster->GetPosition().X() - MUV2_extrap.X()) > 240. ||
+            fabs(CD_MUV2Cluster->GetPosition().Y() - MUV2_extrap.Y()) > 240.){return;}
+
+        //if(MUV2dtrkcl_min > 240.) {return;}
+        if(fabs(MUV2TrkTime) > MUV2OffsetCut){return;}
+    }
+
+    //Quality of the MUV3 cluster, associated with the track (if any)
+    if(MUV3TrackClusterIndex > -1){
+
+        TRecoMUV3Candidate* CD_MUV3Cluster = ((TRecoMUV3Candidate*)MUV3Event->GetCandidate(MUV3TrackClusterIndex));
+
+        double CD_MUV3ClusterTime = ((TRecoMUV3Candidate*)MUV3Event->GetCandidate(MUV3TrackClusterIndex))->GetTime();
+        double MUV3TrkTime = CD_TrackTime - CD_MUV3ClusterTime;
+
+        //CUTComment:: MUV3 cuts
+        //1. Track to be inside of the MUV3 Geometrical acceptance
+        //-----a) Inner Square 26 cm
+        //-----b) Outer Square 220 cm
+        //2. Track search square 20 cm ( less than one block )
+        //-----Reason: Interested in only straight tracks with no multiple scattering
+        //3. Distance between track and associated cluster 24 cm ??
+        //4. Cluster to be in time with the Track ( Current cut 5 ns)
+
+        if(fabs(MUV3_extrap.X()) <= 130. && fabs(MUV3_extrap.Y()) <= 130.){return;}
+        if(fabs(MUV3_extrap.X()) >= 1100. || fabs(MUV3_extrap.Y()) >= 1100.){return;}
+
+        if( fabs(CD_MUV3Cluster->GetX() - MUV3_extrap.X()) > 200. ||
+            fabs(CD_MUV3Cluster->GetY() - MUV3_extrap.Y()) > 200.){return;}
+
+        if(fabs(MUV3TrkTime) > 5){return;}
+        //if(MUV2dtrkcl_min > 150.) {return;}
+
+
+    }
+
 
 
 }
 
 void OneTrackSelection::PostProcess(){
-	/// \MemberDescr
-	/// This function is called after an event has been processed by all analyzers. It could be used to free some memory allocated
-	/// during the Process.
-	/// \EndMemberDescr
 
 }
 
 void OneTrackSelection::EndOfBurstUser(){
-	/// \MemberDescr
-	/// This method is called when a new file is opened in the ROOT TChain (corresponding to a start/end of burst in the normal NA62 data taking) + at the end of the last file\n
-	/// Do here your start/end of burst processing if any
-	/// \EndMemberDescr
+    /// \MemberDescr
+    /// This method is called when a new file is opened in the ROOT TChain (corresponding to a start/end of burst in the normal NA62 data taking) + at the end of the last file\n
+    /// Do here your start/end of burst processing if any
+    /// \EndMemberDescr
 }
 
 void OneTrackSelection::EndOfRunUser(){
-	/// \MemberDescr
-	/// This method is called at the end of the processing (corresponding to a end of run in the normal NA62 data taking)\n
-	/// Do here your end of run processing if any\n
-	/// \n
-	/// You can also use this space to save plots in your output file.\n
-	/// If you want to save them all, just call\n
-	/// \code
-	/// 	SaveAllPlots();
-	/// \endcode
-	/// Or you can just save the ones you want with\n
-	/// \code
-	/// 	histogram->Write()\n
-	///		fHisto.Get...("histoname")->Write();
-	/// \endcode
-	/// \n
-	/// To run over a set of histograms you can use Iterators (HistoHandler::IteratorTH1,
-	/// HistoHandler::IteratorTH2, HistoHandler::IteratorTGraph). You can use it to run over
-	/// all the histograms or only a subset of histogram by using one of the two forms of
-	/// GetIterator...  (replace ... by TH1, TH2 or TGraph)\n
-	/// \code
-	/// 	GetIterator...()
-	/// \endcode
-	/// will get an Iterator running over all histograms of this type while
-	/// \code
-	/// 	GetIterator...("baseName")
-	/// \endcode
-	/// will get an Iterator running only over the histograms of this type whose name starts
-	/// with baseName.\n
-	/// For more details and examples on how to use the Iterator after getting it, please refer
-	/// to the HistoHandler::Iterator documentation.\n
-	/// Although this is described here, Iterators can be used anywhere after the
-	/// histograms have been booked.
-	/// \EndMemberDescr
-
+    SaveAllPlots();
 }
 
 void OneTrackSelection::DrawPlot(){
-	/// \MemberDescr
-	/// This method is called at the end of processing to draw plots when the -g option is used.\n
-	/// If you want to draw all the plots, just call\n
-	/// \code
-	/// 	DrawAllPlots();
-	/// \endcode
-	/// Or get the pointer to the histogram with\n
-	/// \code
-	/// 	fHisto.GetTH1("histoName");// for TH1
-	/// 	fHisto.GetTH2("histoName");// for TH2
-	/// 	fHisto.GetGraph("graphName");// for TGraph and TGraphAsymmErrors
-	///     fHisto.GetHisto("histoName");// for TH1 or TH2 (returns a TH1 pointer)
-	/// \endcode
-	/// and manipulate it as usual (TCanvas, Draw, ...)\n
-	/// \EndMemberDescr
+    /// \MemberDescr
+    /// This method is called at the end of processing to draw plots when the -g option is used.\n
+    /// If you want to draw all the plots, just call\n
+    /// \code
+    ///     DrawAllPlots();
+    /// \endcode
+    /// Or get the pointer to the histogram with\n
+    /// \code
+    ///     fHisto.GetTH1("histoName");// for TH1
+    ///     fHisto.GetTH2("histoName");// for TH2
+    ///     fHisto.GetGraph("graphName");// for TGraph and TGraphAsymmErrors
+    ///     fHisto.GetHisto("histoName");// for TH1 or TH2 (returns a TH1 pointer)
+    /// \endcode
+    /// and manipulate it as usual (TCanvas, Draw, ...)\n
+    /// \EndMemberDescr
+}
+int OneTrackSelection::FindClosestCluster( TRecoVEvent* Event, TVector3 Extrap_track, string detector_type, double& minimum){
+
+    std::vector<double> dtrkcl;
+    //std::vector<int>    clindex;
+    std::vector<double>::iterator VIterator;
+    int position= -1;
+    for (int iCand=0; iCand < Event->GetNCandidates(); iCand++){
+        if(detector_type == "LKr"){
+            TRecoLKrCandidate* Cluster = ((TRecoLKrCandidate*)Event->GetCandidate(iCand));
+            double clusterx = Cluster->GetClusterX();
+            double clustery = Cluster->GetClusterY();
+            double distance = sqrt(pow(clusterx*10. - Extrap_track.X(),2 ) + pow(clustery*10. - Extrap_track.Y(),2 ) ) ;
+            dtrkcl.push_back(distance);
+        }
+        if(detector_type == "MUV1"){
+            TRecoMUV1Candidate* Cluster = ((TRecoMUV1Candidate*)Event->GetCandidate(iCand));
+            //Old Reco
+            //double clusterx = Cluster->GetPosition().X()+ 60;
+            //double clustery = Cluster->GetPosition().Y()+ 60;
+            //New Reco
+            double clusterx = Cluster->GetPosition().X();
+            double clustery = Cluster->GetPosition().Y();
+            double distance = sqrt(pow(clusterx - Extrap_track.X(),2 ) + pow(clustery - Extrap_track.Y(),2 ) ) ;
+            dtrkcl.push_back(distance);
+        }
+        if(detector_type == "MUV2"){
+            TRecoMUV2Candidate* Cluster = ((TRecoMUV2Candidate*)Event->GetCandidate(iCand));
+            double clusterx = Cluster->GetPosition().X();
+            double clustery = Cluster->GetPosition().Y();
+            double distance = sqrt(pow(clusterx - Extrap_track.X(),2 ) + pow(clustery - Extrap_track.Y(),2 ) ) ;
+            dtrkcl.push_back(distance);
+        }
+        if(detector_type == "MUV3"){
+            TRecoMUV3Candidate* Cluster = ((TRecoMUV3Candidate*)Event->GetCandidate(iCand));
+            double clusterx = Cluster->GetX();
+            double clustery = Cluster->GetY();
+            double distance = sqrt(pow(clusterx - Extrap_track.X(),2 ) + pow(clustery - Extrap_track.Y(),2 ) ) ;
+            dtrkcl.push_back(distance);
+        }
+        if(detector_type == "CHOD"){
+            TRecoCHODCandidate* Cluster = ((TRecoCHODCandidate*)Event->GetCandidate(iCand));
+            double clusterx = Cluster->GetHitPosition().X();
+            double clustery = Cluster->GetHitPosition().Y();
+            double distance = sqrt(pow(clusterx*10. - Extrap_track.X(),2 ) + pow(clustery*10. - Extrap_track.Y(),2 ) ) ;
+            dtrkcl.push_back(distance);
+        }
+
+    }
+    //Debugging!!!
+    //cout << " Event -----" << detector_type.data() << endl;
+    //for ( VIterator = dtrkcl.begin() ; VIterator != dtrkcl.end(); VIterator++ ){
+    //    cout << *VIterator << endl;
+    //}
+    //
+    if(dtrkcl.size() !=0){
+        minimum= *min_element(dtrkcl.begin(), dtrkcl.end());
+        position = distance(dtrkcl.begin(), min_element(dtrkcl.begin(), dtrkcl.end()));
+        dtrkcl.clear();
+        //    cout << " Minimum = " << minimum << endl;
+        //    cout << "Index of minimum = " << position << endl;
+
+        //cout << "WOWW == " <<  clindex(min_element(dtrkcl.begin(), dtrkcl.end())) << endl;
+        //cout << " Event OVER-----" << detector_type.data() << endl;
+        //cout << minimum << endl;
+
+    }
+    return position;
+
 }

@@ -871,6 +871,7 @@ void Kmu2::Process(int iEvent){
     //Missing mass cut to select pure muons
     //Momentum measured by the STRAW to be between 10 and 65 GeV
     //Momentum given by the STRAW - Momentum given just by the pattern recognition
+    // to be less than 20 GeV
 
     if(CHODClosestTrackIndex < 0. ){return;}
     if(MUV3TrackClusterIndex < 0. ){return;}
@@ -910,7 +911,8 @@ void Kmu2::Process(int iEvent){
         FillHisto("CHOD_nt_dtrk", sqrt(pow(CHODPos.X()*10. - CHODNtPos.X()*10, 2 ) + pow(CHODPos.Y()*10. - CHODNtPos.Y()*10., 2 ) ));
 
     }
-    //Do the same procedure for track cluster matching for CEDAR, but
+
+//Do the same procedure for track cluster matching for CEDAR, but
     //matching only in time
     for(int iCedarCand=0; iCedarCand < CedarEvent->GetNCandidates(); iCedarCand++){
         CedarCandidate = ((TRecoCedarCandidate*)CedarEvent->GetCandidate(iCedarCand));
