@@ -1,0 +1,2 @@
+/usr/bin/ar cq ../lib/liblOneTrack-static.a  CMakeFiles/lOneTrack-static.dir/Analyzers/src/OneTrack.cc.o
+/usr/bin/ranlib ../lib/liblOneTrack-static.a

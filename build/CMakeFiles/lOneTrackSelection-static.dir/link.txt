@@ -1,0 +1,2 @@
+/usr/bin/ar cq ../lib/liblOneTrackSelection-static.a  CMakeFiles/lOneTrackSelection-static.dir/Analyzers/src/OneTrackSelection.cc.o
+/usr/bin/ranlib ../lib/liblOneTrackSelection-static.a

@@ -1,0 +1,7 @@
+analyzers = OneTrack
+exec= OneTrack
+
+libs = MUV1Reconstruction-static MUV2Reconstruction-static
+libsdirs = /afs/cern.ch/user/r/rmarchev/work/New_NA62Fw/NA62Reconstruction/MUV1/lib /afs/cern.ch/user/r/rmarchev/work/New_NA62Fw/NA62Reconstruction/MUV2/lib
+
+includedirs = Analyzers/include/ /afs/cern.ch/user/r/rmarchev/work/New_NA62Fw/NA62Reconstruction/MUV1/include /afs/cern.ch/user/r/rmarchev/work/New_NA62Fw/NA62Reconstruction/MUV2/include

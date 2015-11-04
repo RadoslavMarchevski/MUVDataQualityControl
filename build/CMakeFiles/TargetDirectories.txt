@@ -1,0 +1,2 @@
+/afs/cern.ch/user/r/rmarchev/work/New_NA62Fw/analysis_new/build/CMakeFiles/OneTrackSelection.dir
+/afs/cern.ch/user/r/rmarchev/work/New_NA62Fw/analysis_new/build/CMakeFiles/lOneTrackSelection-static.dir
